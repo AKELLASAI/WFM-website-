@@ -1,0 +1,124 @@
+{
+  "roles": [
+    {
+      "id": "role-employee",
+      "name": "Employee",
+      "permissions": [
+        "dashboard",
+        "requests",
+        "createRequest",
+        "updateTickets"
+      ]
+    },
+    {
+      "id": "role-assignee",
+      "name": "Assignee",
+      "permissions": [
+        "dashboard",
+        "requests",
+        "updateTickets"
+      ]
+    },
+    {
+      "id": "role-lead",
+      "name": "Department Lead",
+      "permissions": [
+        "dashboard",
+        "requests",
+        "createRequest",
+        "updateTickets",
+        "assignTickets",
+        "reports"
+      ]
+    },
+    {
+      "id": "role-admin",
+      "name": "Super Admin",
+      "permissions": [
+        "dashboard",
+        "requests",
+        "createRequest",
+        "updateTickets",
+        "assignTickets",
+        "reports",
+        "roleMaster",
+        "userMaster"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "EMP001",
+      "empId": "22311056",
+      "name": "Vedavyas Sasank Alamuru",
+      "email": "sasank@finsol.com",
+      "mobile": "9876543210",
+      "roleId": "role-employee",
+      "dept": "IT",
+      "active": true
+    },
+    {
+      "id": "LEAD01",
+      "empId": "100201",
+      "name": "Shyam Sundar Pakala",
+      "email": "shyam.lead@finsol.com",
+      "mobile": "9876543211",
+      "roleId": "role-lead",
+      "dept": "IT",
+      "active": true
+    },
+    {
+      "id": "LEAD02",
+      "empId": "100202",
+      "name": "Anitha Rao",
+      "email": "anitha.hr@finsol.com",
+      "mobile": "9876543212",
+      "roleId": "role-lead",
+      "dept": "HR",
+      "active": true
+    },
+    {
+      "id": "TECH01",
+      "empId": "200301",
+      "name": "Ravi Kumar",
+      "email": "ravi.it@finsol.com",
+      "mobile": "9876543213",
+      "roleId": "role-assignee",
+      "dept": "IT",
+      "active": true
+    },
+    {
+      "id": "TECH02",
+      "empId": "200302",
+      "name": "Kiran Verma",
+      "email": "kiran.it@finsol.com",
+      "mobile": "9876543214",
+      "roleId": "role-assignee",
+      "dept": "IT",
+      "active": true
+    },
+    {
+      "id": "TECH03",
+      "empId": "200303",
+      "name": "Meena Sharma",
+      "email": "meena.hr@finsol.com",
+      "mobile": "9876543215",
+      "roleId": "role-assignee",
+      "dept": "HR",
+      "active": true
+    },
+    {
+      "id": "ADMIN1",
+      "empId": "999999",
+      "name": "Executive Super Admin",
+      "email": "cxo@finsol.com",
+      "mobile": "9876543299",
+      "roleId": "role-admin",
+      "dept": "ALL",
+      "active": true,
+      "passwordHash": "ebee5e3ccae6f0559835a9acaa06295e:201de06a0a5869e1fe237892a02f08b6e96a72a8c25b1401be26ef554e8eef0df3e4500dfc735adab734422f7a56f558a62ca1c7590ec9bdcec442920da10fa8"
+    }
+  ],
+  "tickets": [],
+  "notifications": []
+}

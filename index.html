@@ -1,0 +1,2376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WFM - Workflow Management System</title>
+  <link rel="icon" type="image/jpeg" href="logo.jpg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for robust, clean UI icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .fade-in { animation: fadeIn 0.22s ease-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scoped card hover styles - smooth, non-recursive to eliminate jitter */
+    .card-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 0.75rem;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .card-panel-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      border-color: #cbd5e1;
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    .nav-btn {
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+    }
+
+    button:active,
+    .nav-btn:active {
+      transform: scale(0.98);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      border-color: rgba(37,99,235,0.6);
+      outline: none;
+    }
+
+    #appShell header {
+      background: linear-gradient(180deg, #1d4ed8, #1e40af);
+      border-color: rgba(191,219,254,0.18);
+    }
+
+    #appShell main {
+      padding-bottom: 3rem;
+    }
+
+    /* Print styles for reports */
+    @media print {
+      header, nav, #loginRoleSelect, button, #filterDept, #ticketPagination {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      #view-reports {
+        display: block !important;
+      }
+      .card-panel {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+
+  <!-- Authentication Screen -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+    <div class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-5 text-white">
+        <div class="flex items-center gap-3.5">
+          <img src="logo.jpg" alt="WFM Logo" class="w-12 h-12 rounded-xl object-cover shadow-md ring-2 ring-white/20 shrink-0" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">WFM</h1>
+            <p class="text-xs text-blue-100">Workflow Management Application • Enterprise Edition</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex border-b text-sm font-semibold">
+        <button onclick="switchAuthTab('login')" id="tabLoginBtn" class="w-1/2 py-3 text-blue-600 border-b-2 border-blue-600">OTP Login</button>
+        <button onclick="switchAuthTab('signup')" id="tabSignupBtn" class="w-1/2 py-3 text-slate-500">Self Sign-Up</button>
+      </div>
+
+      <!-- Login View -->
+      <div id="loginView" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Select Demo Role Profile</label>
+          <select id="loginRoleSelect" onchange="prefillDemoUser()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="EMP001">User / Employee (IT) – Vedavyas Sasank Alamuru</option>
+            <option value="LEAD01">Department Lead (IT) – Shyam Sundar Pakala</option>
+            <option value="LEAD02">Department Lead (HR) – Anitha Rao</option>
+            <option value="TECH01">Assignee / Support (IT) – Ravi Kumar</option>
+            <option value="TECH02">Assignee / Support (IT) – Kiran Verma</option>
+            <option value="TECH03">Assignee / Support (HR) – Meena Sharma</option>
+            <option value="ADMIN1">Super Admin – Executive Super Admin (CXO Control)</option>
+          </select>
+          <p id="demoRoleDescription" class="text-xs text-slate-500 mt-1">Role: User • Department: IT • Mobile: 9876543210</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Registered Mobile Number / Emp ID *</label>
+          <input id="loginMobile" type="text" value="9876543210" placeholder="Enter 10-digit mobile or Emp ID" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+          <p id="loginMobileError" class="text-red-600 text-xs mt-1 hidden"></p>
+        </div>
+
+        <div>
+          <button id="sendOtpBtn" onclick="handleSendOtp()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Send 6-Digit OTP
+          </button>
+        </div>
+
+        <div id="otpBox" class="hidden pt-3 border-t space-y-3">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-xs text-blue-800">
+            <i class="fa-solid fa-comment-sms mr-1"></i>
+            SMS Sent: Your OTP for <strong>WFM App</strong> login is <span id="generatedOtpDisplay" class="font-bold underline text-blue-900"></span>. Valid for 5 minutes.
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Enter 6-Digit OTP *</label>
+            <input id="otpInput" type="text" maxlength="6" placeholder="••••••" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-center tracking-widest font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+            <p id="otpError" class="text-red-600 text-xs mt-1 hidden"></p>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-500">
+            <span id="otpTimerText">Resend available in 50s</span>
+            <button id="resendOtpBtn" onclick="handleSendOtp(true)" disabled class="text-blue-600 font-semibold disabled:text-slate-400">Resend OTP</button>
+          </div>
+          <button onclick="handleVerifyOtp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-check"></i> Verify & Login to WFM
+          </button>
+        </div>
+      </div>
+
+      <!-- Sign-up View -->
+      <div id="signupView" class="p-6 space-y-3 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600">Full Name *</label>
+          <input id="regName" type="text" placeholder="Letters and spaces only" class="w-full border rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600">Employee ID *</label>
+            <input id="regEmpId" type="text" placeholder="e.g. 22311099" class="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600">Mobile (10 Digits) *</label>
+            <input id="regMobile" type="text" maxlength="10" placeholder="9876543219" class="w-full border rounded-lg px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600">Email Address *</label>
+          <input id="regEmail" type="email" placeholder="user@organization.com" class="w-full border rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600">Department *</label>
+          <select id="regDept" class="w-full border rounded-lg px-3 py-2 text-sm">
+            <option value="">Select Department</option>
+            <option value="IT">IT Department</option>
+            <option value="HR">HR & Finance</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 flex items-center justify-between">
+            <span>Profile Picture</span>
+            <span class="text-[10px] text-slate-400 font-normal uppercase tracking-wide">Optional</span>
+          </label>
+          <div class="flex items-center gap-3 p-2.5 bg-slate-50 border border-dashed border-slate-300 rounded-lg">
+            <div id="regAvatarPreviewBox" class="w-12 h-12 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 overflow-hidden shrink-0 shadow-inner">
+              <i id="regAvatarDefaultIcon" class="fa-solid fa-user text-base"></i>
+              <img id="regAvatarImg" class="w-full h-full object-cover hidden" alt="Profile Preview" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <input type="file" id="regAvatarInput" accept="image/png,image/jpeg,image/webp,image/jpg" class="hidden" onchange="handleRegAvatarChange(event)" />
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="document.getElementById('regAvatarInput').click()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1.5 rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                  <i class="fa-solid fa-camera"></i> Choose Photo
+                </button>
+                <button type="button" id="regAvatarRemoveBtn" onclick="clearRegAvatar()" class="text-xs text-red-500 hover:text-red-700 hover:underline hidden cursor-pointer">
+                  Remove
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-1">PNG, JPG, or WEBP (Optional)</p>
+            </div>
+          </div>
+        </div>
+        <p id="signupMsg" class="text-xs hidden"></p>
+        <button onclick="handleSignUp()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition">
+          Register & Create Account (Role: User)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="appShell" class="hidden min-h-screen bg-slate-100 flex flex-col">
+    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <img src="logo.jpg" alt="WFM Logo" class="w-10 h-10 rounded-xl object-cover shadow-inner ring-1 ring-blue-300/40 shrink-0" />
+          <div>
+            <div class="text-lg font-extrabold tracking-wide leading-tight">WFM</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] text-blue-200">Workflow Management System</div>
+            <div id="userHeaderMeta" class="text-[11px] text-blue-100 font-medium"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2.5">
+          <button onclick="manualRefresh()" class="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-2 rounded-lg flex items-center gap-1.5 transition" title="Refresh dashboard and recalculate SLA adherence">
+            <i id="refreshIcon" class="fa-solid fa-arrows-rotate"></i>
+            <span id="lastRefreshedText">Updated Just Now</span>
+          </button>
+
+          <!-- Notification Dropdown -->
+          <div class="relative">
+            <button id="notifBtn" onclick="toggleNotifications()" class="relative bg-blue-800 hover:bg-blue-700 p-2 rounded-lg transition" title="Push & SLA Alerts">
+              <i class="fa-solid fa-bell"></i>
+              <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
+            </button>
+            <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+              <div class="bg-slate-100 px-4 py-2.5 border-b flex justify-between items-center">
+                <span class="font-bold text-xs uppercase text-slate-600 flex items-center gap-1.5">
+                  <i class="fa-solid fa-bell text-blue-600"></i> Push & SLA Alerts
+                </span>
+                <button onclick="markAllNotificationsRead()" class="text-xs text-blue-600 hover:underline">Mark all read</button>
+              </div>
+              <div id="notifList" class="max-h-72 overflow-y-auto divide-y text-xs"></div>
+            </div>
+          </div>
+
+          <!-- Reset Demo Data -->
+          <button onclick="resetDemoData()" class="bg-blue-800/80 hover:bg-blue-700 text-blue-200 hover:text-white text-xs px-2.5 py-2 rounded-lg transition" title="Reset sample tickets to clean initial state">
+            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Reset Data
+          </button>
+
+          <!-- Profile Button -->
+          <button onclick="openProfileModal()" class="flex items-center gap-2 bg-blue-800 hover:bg-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-700/80 transition cursor-pointer" title="View & Edit Profile (Optional Photo)">
+            <div id="headerAvatarContainer" class="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center font-bold text-xs ring-2 ring-blue-300/40 shrink-0 bg-blue-600 text-white">
+              <i class="fa-solid fa-user text-xs"></i>
+            </div>
+            <span id="headerUserNameText" class="text-xs font-semibold text-white max-w-[100px] truncate hidden md:inline-block">Profile</span>
+          </button>
+
+          <!-- Logout Button -->
+          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+            <i class="fa-solid fa-right-from-bracket"></i>Logout
+          </button>
+        </div>
+      </div>
+
+      <nav class="bg-blue-800/90 border-t border-blue-600/70">
+        <div class="max-w-7xl mx-auto px-4 flex space-x-1 overflow-x-auto text-xs sm:text-sm font-medium">
+          <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn py-2.5 px-4 border-b-2 border-white text-white flex items-center gap-2 font-semibold">
+            <i class="fa-solid fa-chart-pie"></i><span>Role Dashboard</span>
+          </button>
+          <button onclick="navigate('mytickets')" id="nav-mytickets" class="nav-btn py-2.5 px-4 border-b-2 border-transparent text-blue-200 hover:text-white flex items-center gap-2">
+            <i class="fa-solid fa-ticket"></i><span>My Tickets Hub</span>
+          </button>
+          <button onclick="navigate('create')" id="nav-create" class="nav-btn py-2.5 px-4 border-b-2 border-transparent text-blue-200 hover:text-white flex items-center gap-2">
+            <i class="fa-solid fa-circle-plus"></i><span>Raise Ticket</span>
+          </button>
+          <button onclick="navigate('reports')" id="nav-reports" class="nav-btn py-2.5 px-4 border-b-2 border-transparent text-blue-200 hover:text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-line"></i><span>Reports & SLA Analytics</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto p-4 flex-1 space-y-6">
+
+      <!-- View: Dashboard -->
+      <section id="view-dashboard" class="space-y-6 fade-in">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 id="dashboardTitle" class="text-xl font-bold text-slate-800">Dashboard</h3>
+            <p id="dashboardSubtitle" class="text-xs text-slate-500"></p>
+          </div>
+          <button onclick="navigate('create')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow flex items-center gap-2 transition">
+            <i class="fa-solid fa-plus"></i> Raise New Ticket
+          </button>
+        </div>
+
+        <div id="kpiGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card-panel p-5">
+            <h4 class="font-bold text-sm text-slate-700 mb-4 flex items-center justify-between">
+              <span>Ticket Status & SLA Distribution</span>
+              <span class="text-xs font-normal text-slate-400">Click bar to filter</span>
+            </h4>
+            <div id="statusChartContainer" class="space-y-3 text-xs"></div>
+          </div>
+
+          <div class="card-panel p-5">
+            <h4 id="secondaryChartTitle" class="font-bold text-sm text-slate-700 mb-4">Ticket Aging Breakdown (Active Tickets)</h4>
+            <div id="categoryChartContainer" class="space-y-3 text-xs"></div>
+          </div>
+        </div>
+
+        <div id="execSummaryCard" class="card-panel overflow-hidden hidden">
+          <div class="px-5 py-4 border-b bg-slate-50 flex justify-between items-center">
+            <h4 class="font-bold text-sm text-slate-700">Department-Wise SLA Compliance & Performance</h4>
+            <span class="text-xs text-slate-500">Green ≥90% | Yellow 75–89% | Red ≤74%</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <th class="p-3">Department</th>
+                  <th class="p-3">Total Tickets</th>
+                  <th class="p-3">Pending</th>
+                  <th class="p-3">Resolved</th>
+                  <th class="p-3">SLA Breached</th>
+                  <th class="p-3">SLA Compliance (%)</th>
+                  <th class="p-3">Avg Resolution</th>
+                </tr>
+              </thead>
+              <tbody id="deptSummaryBody" class="divide-y"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: My Tickets -->
+      <section id="view-mytickets" class="space-y-4 hidden fade-in">
+        <div class="card-panel p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800">My Tickets Operational Hub</h3>
+              <p class="text-xs text-slate-500">Showing up to 15 tickets per page • Dynamic SLA matrix with real-time escalation tracking</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs flex-wrap">
+              <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-800 font-semibold">● Green: Within SLA</span>
+              <span class="px-2 py-1 rounded bg-amber-100 text-amber-800 font-semibold">● Amber: SLA Warning (70%+)</span>
+              <span class="px-2 py-1 rounded bg-red-100 text-red-800 font-semibold">● Red: SLA Breached</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2.5 pt-2 border-t text-xs">
+            <select id="filterDept" onchange="renderTickets(true)" class="border rounded-lg px-2.5 py-2">
+              <option value="ALL">All Departments</option>
+              <option value="IT">IT Department</option>
+              <option value="HR">HR & Finance</option>
+            </select>
+            <select id="filterCategory" onchange="renderTickets(true)" class="border rounded-lg px-2.5 py-2">
+              <option value="ALL">All Categories</option>
+            </select>
+            <select id="filterStatus" onchange="renderTickets(true)" class="border rounded-lg px-2.5 py-2">
+              <option value="ACTIVE">Active Tickets</option>
+              <option value="PENDING">New / Pending</option>
+              <option value="IN_PROGRESS">In Progress / On Hold</option>
+              <option value="SLA_BREACHED">SLA Breached</option>
+              <option value="ALL">All Statuses</option>
+              <option value="New">New</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="On Hold">On Hold (SLA Paused)</option>
+              <option value="Reopened">Reopened</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <select id="filterFloor" onchange="renderTickets(true)" class="border rounded-lg px-2.5 py-2">
+              <option value="ALL">All Floors</option>
+              <option value="Ground Floor">Ground Floor</option>
+              <option value="1st Floor">1st Floor</option>
+              <option value="2nd Floor">2nd Floor</option>
+              <option value="3rd Floor">3rd Floor</option>
+            </select>
+            <input id="filterSearch" oninput="renderTickets(true)" type="text" placeholder="Search Emp ID, Name, Title, Assignee..." class="border rounded-lg px-2.5 py-2" />
+            <button onclick="resetTicketFilters()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg px-3 py-2 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-filter-circle-xmark"></i> Reset Filters
+            </button>
+          </div>
+        </div>
+
+        <div id="ticketsListContainer" class="space-y-3"></div>
+
+        <div id="ticketPagination" class="hidden items-center justify-end gap-3 text-xs">
+          <span id="ticketPageText" class="text-slate-500 font-medium"></span>
+          <button id="ticketPrevBtn" type="button" onclick="changeTicketPage(-1)" class="rounded-lg border px-3 py-2 disabled:opacity-40 hover:bg-slate-50 transition" aria-label="Previous ticket page">Previous</button>
+          <button id="ticketNextBtn" type="button" onclick="changeTicketPage(1)" class="rounded-lg border px-3 py-2 disabled:opacity-40 hover:bg-slate-50 transition" aria-label="Next ticket page">Next</button>
+        </div>
+      </section>
+
+      <!-- View: Create Ticket -->
+      <section id="view-create" class="hidden fade-in max-w-2xl mx-auto">
+        <div class="card-panel overflow-hidden">
+          <div class="bg-blue-600 px-6 py-4 text-white">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <i class="fa-solid fa-plus-circle"></i> Raise New Ticket
+            </h3>
+            <p class="text-xs text-blue-100">Auto-generates Unique WFM Ticket ID (Format: T + Dept + YYYYMM + Seq)</p>
+          </div>
+          <form id="createTicketForm" onsubmit="submitNewTicket(event)" class="p-6 space-y-4 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Department *</label>
+                <select id="tDept" onchange="populateCategoryOptions()" class="w-full border rounded-lg px-3 py-2">
+                  <option value="IT">IT Department</option>
+                  <option value="HR">HR & Finance</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Category *</label>
+                <select id="tCategory" class="w-full border rounded-lg px-3 py-2"></select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Floor Location *</label>
+                <select id="tFloor" class="w-full border rounded-lg px-3 py-2">
+                  <option value="">Select Floor</option>
+                  <option value="Ground Floor">Ground Floor</option>
+                  <option value="1st Floor">1st Floor</option>
+                  <option value="2nd Floor">2nd Floor</option>
+                  <option value="3rd Floor">3rd Floor</option>
+                </select>
+                <p id="floorError" class="text-red-600 text-xs mt-1 hidden">Please select a floor location.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Priority (1-5) *</label>
+                <select id="tPriority" class="w-full border rounded-lg px-3 py-2">
+                  <option value="1">1 - Critical (SLA: 4 Hrs)</option>
+                  <option value="2">2 - High (SLA: 8 Hrs)</option>
+                  <option value="3" selected>3 - Medium (SLA: 24 Hrs)</option>
+                  <option value="4">4 - Low (SLA: 48 Hrs)</option>
+                  <option value="5">5 - Lowest (SLA: 72 Hrs)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Expected Completion</label>
+                <input id="tExpectedDate" type="date" class="w-full border rounded-lg px-3 py-2" />
+                <p id="expectedDateError" class="text-red-600 text-xs mt-1 hidden">Please select a valid future date (0–90 days).</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Title / Subject *</label>
+              <input id="tTitle" type="text" required placeholder="Brief summary of the issue (e.g., VPN Connection Issue)" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Detailed Description *</label>
+              <textarea id="tDesc" rows="4" required placeholder="Provide a detailed explanation of the problem you are experiencing..." class="w-full border rounded-lg px-3 py-2"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end gap-3">
+              <button type="button" onclick="navigate('mytickets')" class="px-4 py-2 rounded-lg border text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Raise Ticket
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- View: Reports & SLA Analytics -->
+      <section id="view-reports" class="hidden fade-in space-y-6">
+        <div id="reportsAccessDenied" class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-5 rounded-xl">
+          <div class="flex items-center gap-2 font-bold text-sm">
+            <i class="fa-solid fa-circle-info text-amber-600"></i> Role Notice: Restricted View
+          </div>
+          <p class="text-xs mt-1">Assignee-wide and Organization metrics are reserved for Department Leads and Super Admins. Below shows reporting for tickets you are authorized to access.</p>
+        </div>
+
+        <div class="card-panel p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800">WFM Reports & Analytics Engine</h3>
+              <p id="reportPeriodHeader" class="text-xs text-blue-600 font-semibold mt-0.5"></p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="exportReportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-file-excel"></i> Export Excel (.csv)
+              </button>
+              <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition shadow-sm">
+                <i class="fa-solid fa-file-pdf"></i> Export PDF / Print
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end pt-3 border-t text-xs">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">From Date (DD-MM-YYYY) *</label>
+              <input id="repFromDate" type="date" onchange="validateReportDates()" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">End Date (DD-MM-YYYY) *</label>
+              <input id="repEndDate" type="date" onchange="validateReportDates()" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">Report Type</label>
+              <select id="repType" onchange="generateReports()" class="w-full border rounded-lg px-3 py-2">
+                <option value="cumulation">Cumulation Report (Category, Floor, SLA)</option>
+                <option value="assignee">Issues by Assignee Performance Report</option>
+              </select>
+            </div>
+            <button id="generateReportBtn" onclick="generateReports(true)" class="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-arrows-rotate"></i> Generate Report
+            </button>
+          </div>
+          <p id="reportDateError" class="text-red-600 text-xs hidden"></p>
+          <p id="reportSuccessMsg" class="text-emerald-600 text-xs hidden"></p>
+        </div>
+
+        <div class="card-panel overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead id="reportTableHead" class="bg-slate-100 text-slate-600 uppercase font-semibold"></thead>
+              <tbody id="reportTableBody" class="divide-y"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Ticket Detail & Action Modal -->
+  <div id="ticketModal" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden border border-slate-200 flex flex-col fade-in">
+      <div class="bg-slate-800 text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <div id="modalTicketId" class="text-xs uppercase tracking-wider text-slate-300 font-semibold">Ticket</div>
+          <div id="modalTicketTitle" class="text-lg font-bold mt-0.5">Ticket Title</div>
+        </div>
+        <button onclick="closeTicketModal()" class="text-2xl text-slate-300 hover:text-white font-light px-2" title="Close (Esc)">×</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm flex-1">
+        <!-- Metadata Grid -->
+        <div id="modalMetaGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border text-xs"></div>
+
+        <!-- Resolution Box (Shown only if resolved) -->
+        <div id="modalResolutionBox" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-1">
+          <div class="flex items-center justify-between text-xs font-bold text-emerald-800 uppercase">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> Resolution Details</span>
+            <span id="modalResolvedMeta" class="text-[11px] text-emerald-700"></span>
+          </div>
+          <p id="modalResolutionText" class="text-xs text-emerald-900 mt-1 font-medium"></p>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <h4 class="text-xs font-bold uppercase text-slate-500 mb-1">Issue Description</h4>
+          <p id="modalDescription" class="bg-slate-50 p-3 rounded-lg border text-slate-700 leading-relaxed"></p>
+        </div>
+
+        <!-- Department Lead: Assign/Reassign -->
+        <div id="leadAssignBox" class="hidden bg-indigo-50 border border-indigo-200 p-4 rounded-xl space-y-2">
+          <h4 class="font-bold text-indigo-900 text-xs uppercase flex items-center gap-1.5">
+            <i class="fa-solid fa-user-gear"></i> Department Lead / Admin: Assign or Reassign Ticket
+          </h4>
+          <div class="flex gap-2">
+            <select id="assignMemberSelect" class="flex-1 border rounded-lg px-3 py-2 text-xs bg-white"></select>
+            <button onclick="assignTicketToMember()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">
+              Assign Ticket
+            </button>
+          </div>
+          <p class="text-[11px] text-indigo-600">Note: Reassignment is logged into the audit trail without resetting the SLA countdown timer.</p>
+        </div>
+
+        <!-- Assignee: Set ETA -->
+        <div id="assigneeEtaBox" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
+          <h4 class="font-bold text-amber-900 text-xs uppercase flex items-center gap-1.5">
+            <i class="fa-solid fa-clock"></i> Assignee Commitment: Set / Update ETA
+          </h4>
+          <div class="flex gap-2">
+            <input id="etaInput" type="datetime-local" class="flex-1 border rounded-lg px-3 py-2 text-xs bg-white" />
+            <button onclick="saveTicketEta()" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">
+              Commit ETA
+            </button>
+          </div>
+          <p id="etaErrorMsg" class="text-red-600 text-xs hidden"></p>
+        </div>
+
+        <!-- Staging & Remarks -->
+        <div class="border-t pt-4 space-y-3">
+          <h4 class="font-bold text-slate-700 text-xs uppercase flex items-center justify-between">
+            <span>Update Stage / Add Audit Remark</span>
+            <span id="roleStageHint" class="text-[11px] font-normal text-slate-400"></span>
+          </h4>
+          <div id="statusActionRow" class="flex flex-wrap gap-2">
+            <select id="modalStatusSelect" class="border rounded-lg px-3 py-2 text-xs"></select>
+          </div>
+          <textarea id="modalRemarkInput" maxlength="500" rows="2" placeholder="Mandatory comment or resolution explanation for this update..." class="w-full border rounded-lg px-3 py-2 text-xs"></textarea>
+          <p id="modalActionError" class="text-red-600 text-xs hidden"></p>
+          <div class="flex justify-end gap-2">
+            <button onclick="submitTicketUpdate()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5">
+              <i class="fa-solid fa-floppy-disk"></i> Save Update & Log Audit
+            </button>
+          </div>
+        </div>
+
+        <!-- Audit Trail -->
+        <div class="border-t pt-4">
+          <h4 class="font-bold text-slate-500 text-xs uppercase mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check"></i> Ticket Audit Trail & Lifecycle History
+          </h4>
+          <div id="modalHistoryList" class="space-y-2 text-xs max-h-44 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Modal -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-slate-900/60 z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 fade-in">
+      <div class="bg-blue-900 text-white px-5 py-4 flex items-center justify-between">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-id-badge"></i> User Profile
+        </h3>
+        <button onclick="closeProfileModal()" class="text-2xl text-blue-200 hover:text-white font-light px-2 cursor-pointer" title="Close (Esc)">×</button>
+      </div>
+      <div class="p-6 space-y-5 text-sm">
+        <!-- Profile Picture Section (Optional) -->
+        <div class="flex items-center gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div id="profileModalAvatarContainer" class="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center font-bold text-lg bg-blue-600 text-white shadow-md ring-2 ring-blue-500/30 shrink-0">
+            <!-- img or initials -->
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <span>Profile Picture</span>
+              <span class="text-[10px] text-slate-400 font-normal uppercase">(Optional)</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Upload or update photo anytime</p>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="file" id="profileModalAvatarInput" accept="image/png,image/jpeg,image/webp,image/jpg" class="hidden" onchange="handleProfileAvatarChange(event)" />
+              <button type="button" onclick="document.getElementById('profileModalAvatarInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+                <i class="fa-solid fa-camera"></i> Change Photo
+              </button>
+              <button type="button" id="profileModalRemoveAvatarBtn" onclick="removeProfileAvatar()" class="text-xs text-red-500 hover:text-red-700 hover:underline hidden cursor-pointer">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Details Grid -->
+        <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-400 uppercase font-semibold">Full Name</span>
+            <span id="profileModalName" class="font-bold text-slate-800"></span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-400 uppercase font-semibold">Employee ID</span>
+            <span id="profileModalEmpId" class="font-bold text-slate-800"></span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-400 uppercase font-semibold">Role</span>
+            <span id="profileModalRole" class="font-bold text-blue-700"></span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-400 uppercase font-semibold">Department</span>
+            <span id="profileModalDept" class="font-bold text-slate-800"></span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-400 uppercase font-semibold">Mobile</span>
+            <span id="profileModalMobile" class="font-bold text-slate-800"></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400 uppercase font-semibold">Email</span>
+            <span id="profileModalEmail" class="font-bold text-slate-800"></span>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button onclick="closeProfileModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CATEGORIES = {
+      IT: [
+        "Systems", "Network", "VPN", "Email Issue", "Internet Issue",
+        "Biometric Issue", "System Slowness", "Access Issue", "Printer Issue",
+        "Software Installation", "Monitor Problem", "Keyboard/Mouse Issue", "Others (IT Specific)"
+      ],
+      HR: [
+        "Salary Issue", "Payslip Request", "Loan Request", "Tax Proof Submission",
+        "PF/ESI Query", "Reimbursement Query", "Leave Query", "HR Policy Query", "Others (HR/Finance Specific)"
+      ]
+    };
+
+    const USERS_DEFAULT = [
+      { id: "EMP001", empId: "22311056", name: "Vedavyas Sasank Alamuru", mobile: "9876543210", email: "sasank@finsol.com", role: "User", dept: "IT", avatar: "" },
+      { id: "LEAD01", empId: "100201", name: "Shyam Sundar Pakala", mobile: "9876543211", email: "shyam.lead@finsol.com", role: "Department Lead", dept: "IT", avatar: "" },
+      { id: "LEAD02", empId: "100202", name: "Anitha Rao", mobile: "9876543212", email: "anitha.hr@finsol.com", role: "Department Lead", dept: "HR", avatar: "" },
+      { id: "TECH01", empId: "200301", name: "Ravi Kumar", mobile: "9876543213", email: "ravi.it@finsol.com", role: "Assignee", dept: "IT", avatar: "" },
+      { id: "TECH02", empId: "200302", name: "Kiran Verma", mobile: "9876543214", email: "kiran.it@finsol.com", role: "Assignee", dept: "IT", avatar: "" },
+      { id: "TECH03", empId: "200303", name: "Meena Sharma", mobile: "9876543215", email: "meena.hr@finsol.com", role: "Assignee", dept: "HR", avatar: "" },
+      { id: "ADMIN1", empId: "999999", name: "Executive Super Admin", mobile: "9876543299", email: "cxo@finsol.com", role: "Super Admin", dept: "ALL", avatar: "" }
+    ];
+
+    // Priority SLA targets in Hours
+    const SLA_LIMITS_HOURS = {
+      1: 4,   // P1 Critical: 4 hours
+      2: 8,   // P2 High: 8 hours
+      3: 24,  // P3 Medium: 24 hours
+      4: 48,  // P4 Low: 48 hours
+      5: 72   // P5 Lowest: 72 hours
+    };
+
+    function getUserInitials(name) {
+      if (!name) return 'U';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function getAvatarBadgeHtml(name, avatarUrl, sizeClass = 'w-7 h-7 text-[10px]') {
+      if (avatarUrl) {
+        return `<div class="${sizeClass} rounded-full overflow-hidden shrink-0 border border-slate-200 shadow-sm"><img src="${avatarUrl}" alt="${escapeHtml(name || '')}" class="w-full h-full object-cover"></div>`;
+      }
+      const initials = getUserInitials(name);
+      const colors = [
+        'bg-blue-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-purple-600',
+        'bg-amber-600', 'bg-rose-600', 'bg-teal-600', 'bg-cyan-600'
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || '').length; i++) {
+        hash = (hash << 5) - hash + name.charCodeAt(i);
+        hash |= 0;
+      }
+      const color = colors[Math.abs(hash) % colors.length];
+      return `<div class="${sizeClass} ${color} rounded-full overflow-hidden shrink-0 flex items-center justify-center font-bold text-white shadow-sm">${initials}</div>`;
+    }
+
+    function processImageFile(file, callback) {
+      if (!file || !file.type.startsWith('image/')) {
+        return callback(null);
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image file size should be less than 5MB.");
+        return callback(null);
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 256;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          callback(dataUrl);
+        };
+        img.onerror = function() {
+          callback(null);
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = function() {
+        callback(null);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function formatDateForStorage(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${day} ${h}:${min}`;
+    }
+
+    function formatDateDisplay(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${day}-${m}-${y} ${h}:${min}`;
+    }
+
+    function formatDateOnly(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function getInitialTickets() {
+      return [];
+    }
+
+    function getInitialNotifications() {
+      return [];
+    }
+
+    // LocalStorage management
+    function loadStorage(key, fallback) {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+      } catch (e) {
+        console.warn('LocalStorage read error:', e);
+        return fallback;
+      }
+    }
+
+    function saveStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+    }
+
+    let USERS = loadStorage('wfm_users_v3', USERS_DEFAULT);
+    USERS.forEach(u => {
+      if (u.avatar === undefined) u.avatar = "";
+    });
+    let tickets = loadStorage('wfm_tickets_v3', null);
+    if (!tickets || !Array.isArray(tickets) || tickets.length === 0) {
+      tickets = getInitialTickets();
+      saveStorage('wfm_tickets_v3', tickets);
+    }
+
+    let notifications = loadStorage('wfm_notifications_v3', null);
+    if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
+      notifications = getInitialNotifications();
+      saveStorage('wfm_notifications_v3', notifications);
+    }
+
+    function saveToStorage() {
+      saveStorage('wfm_users_v3', USERS);
+      saveStorage('wfm_tickets_v3', tickets);
+      saveStorage('wfm_notifications_v3', notifications);
+    }
+
+    function resetDemoData() {
+      if (confirm("Reset all tickets, users, and notifications back to clean initial demo state?")) {
+        localStorage.removeItem('wfm_users_v3');
+        localStorage.removeItem('wfm_tickets_v3');
+        localStorage.removeItem('wfm_notifications_v3');
+        USERS = [...USERS_DEFAULT];
+        tickets = getInitialTickets();
+        notifications = getInitialNotifications();
+        saveToStorage();
+        updateSlaAndAging();
+        renderDashboard();
+        renderTickets();
+        renderNotifications();
+        alert("Demo data successfully reset.");
+      }
+    }
+
+    let currentUser = null;
+    let currentOtp = null;
+    let otpUserId = null;
+    let otpExpiresAt = 0;
+    let otpAttempts = 0;
+    let otpResendCount = 0;
+    let otpTimerInterval = null;
+    let autoRefreshInterval = null;
+    let slaTimerInterval = null;
+    let activeTicketId = null;
+    let ticketPage = 0;
+    const ticketsPerPage = 15;
+
+    function escapeHtml(value) {
+      const replacements = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(value ?? '').replace(/[&<>"']/g, char => replacements[char]);
+    }
+
+    function switchAuthTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('loginView').classList.toggle('hidden', !isLogin);
+      document.getElementById('signupView').classList.toggle('hidden', isLogin);
+      document.getElementById('tabLoginBtn').className = isLogin
+        ? 'w-1/2 py-3 text-blue-600 border-b-2 border-blue-600 font-semibold'
+        : 'w-1/2 py-3 text-slate-500 font-semibold hover:text-slate-700';
+      document.getElementById('tabSignupBtn').className = !isLogin
+        ? 'w-1/2 py-3 text-blue-600 border-b-2 border-blue-600 font-semibold'
+        : 'w-1/2 py-3 text-slate-500 font-semibold hover:text-slate-700';
+    }
+
+    function prefillDemoUser() {
+      const selectedId = document.getElementById('loginRoleSelect').value;
+      const u = USERS.find(x => x.id === selectedId);
+      if (u) {
+        document.getElementById('loginMobile').value = u.mobile;
+        document.getElementById('loginMobileError').classList.add('hidden');
+        document.getElementById('demoRoleDescription').textContent = `Role: ${u.role} • Department: ${u.dept} • Mobile: ${u.mobile}`;
+        document.getElementById('otpBox').classList.add('hidden');
+        currentOtp = null;
+        otpUserId = null;
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+      }
+    }
+
+    function handleSendOtp(isResend = false) {
+      const mobileVal = document.getElementById('loginMobile').value.trim();
+      const errEl = document.getElementById('loginMobileError');
+      errEl.classList.add('hidden');
+
+      const user = USERS.find(u => u.mobile === mobileVal || u.empId === mobileVal);
+      if (!user) {
+        errEl.textContent = "Mobile number or Employee ID not found in system.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (isResend) {
+        otpResendCount++;
+        if (otpResendCount > 3) {
+          alert("Maximum OTP attempts reached. Please try again later.");
+          return;
+        }
+      } else {
+        otpResendCount = 0;
+      }
+
+      currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      otpUserId = user.id;
+      otpExpiresAt = Date.now() + 5 * 60 * 1000;
+      otpAttempts = 0;
+
+      document.getElementById('generatedOtpDisplay').textContent = currentOtp;
+      document.getElementById('otpInput').value = currentOtp; // Auto-prefill for effortless testing
+      document.getElementById('otpBox').classList.remove('hidden');
+
+      let remaining = 50;
+      const resendBtn = document.getElementById('resendOtpBtn');
+      const timerTxt = document.getElementById('otpTimerText');
+      resendBtn.disabled = true;
+      if (otpTimerInterval) clearInterval(otpTimerInterval);
+      otpTimerInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(otpTimerInterval);
+          timerTxt.textContent = "Didn't receive code?";
+          resendBtn.disabled = false;
+        } else {
+          timerTxt.textContent = `Resend OTP in 00:${remaining < 10 ? '0' + remaining : remaining}`;
+        }
+      }, 1000);
+    }
+
+    function quickDemoLogin() {
+      const selectedId = document.getElementById('loginRoleSelect').value;
+      const user = USERS.find(x => x.id === selectedId) || USERS[0];
+      currentUser = user;
+      currentOtp = null;
+      otpUserId = null;
+      if (otpTimerInterval) clearInterval(otpTimerInterval);
+      launchApp();
+    }
+
+    function handleVerifyOtp() {
+      const entered = document.getElementById('otpInput').value.trim();
+      const errEl = document.getElementById('otpError');
+      errEl.classList.add('hidden');
+
+      if (!currentOtp || Date.now() > otpExpiresAt) {
+        errEl.textContent = "OTP has expired. Please request a new one.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      otpAttempts++;
+      if (otpAttempts > 3) {
+        errEl.textContent = "Maximum 3 attempts exceeded. Mobile temporarily locked.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      if (entered !== currentOtp) {
+        errEl.textContent = "Invalid OTP. Please check the code sent.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      const mobileVal = document.getElementById('loginMobile').value.trim();
+      const user = USERS.find(u => u.mobile === mobileVal || u.empId === mobileVal);
+      if (!user || user.id !== otpUserId) {
+        errEl.textContent = "This OTP was issued for a different account. Please request a fresh OTP.";
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      currentUser = user;
+      currentOtp = null;
+      otpUserId = null;
+      clearInterval(otpTimerInterval);
+      launchApp();
+    }
+
+    let pendingRegAvatar = null;
+
+    function handleRegAvatarChange(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      processImageFile(file, (dataUrl) => {
+        if (!dataUrl) {
+          alert('Could not process this image. Please upload a valid PNG, JPG or WEBP image.');
+          return;
+        }
+        pendingRegAvatar = dataUrl;
+        const img = document.getElementById('regAvatarImg');
+        const icon = document.getElementById('regAvatarDefaultIcon');
+        const rmBtn = document.getElementById('regAvatarRemoveBtn');
+        if (img && icon && rmBtn) {
+          img.src = dataUrl;
+          img.classList.remove('hidden');
+          icon.classList.add('hidden');
+          rmBtn.classList.remove('hidden');
+        }
+      });
+    }
+
+    function clearRegAvatar() {
+      pendingRegAvatar = null;
+      const inp = document.getElementById('regAvatarInput');
+      if (inp) inp.value = '';
+      const img = document.getElementById('regAvatarImg');
+      const icon = document.getElementById('regAvatarDefaultIcon');
+      const rmBtn = document.getElementById('regAvatarRemoveBtn');
+      if (img && icon && rmBtn) {
+        img.src = '';
+        img.classList.add('hidden');
+        icon.classList.remove('hidden');
+        rmBtn.classList.add('hidden');
+      }
+    }
+
+    function handleSignUp() {
+      const name = document.getElementById('regName').value.trim();
+      const empId = document.getElementById('regEmpId').value.trim();
+      const mobile = document.getElementById('regMobile').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const dept = document.getElementById('regDept').value;
+      const msg = document.getElementById('signupMsg');
+      msg.classList.remove('hidden');
+
+      if (!/^[a-zA-Z\s]+$/.test(name)) {
+        msg.className = "text-xs text-red-600";
+        msg.textContent = "Name must only contain alphabetical characters and spaces.";
+        return;
+      }
+      if (!empId) {
+        msg.className = "text-xs text-red-600";
+        msg.textContent = "Employee ID is required.";
+        return;
+      }
+      if (!/^\d{10}$/.test(mobile)) {
+        msg.className = "text-xs text-red-600";
+        msg.textContent = "Mobile number must be exactly 10 digits.";
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !dept) {
+        msg.className = "text-xs text-red-600";
+        msg.textContent = "Please enter a valid RFC-compliant email and select a Department.";
+        return;
+      }
+      if (USERS.some(u =>
+        u.mobile === mobile ||
+        u.email.toLowerCase() === email.toLowerCase() ||
+        u.empId.toLowerCase() === empId.toLowerCase()
+      )) {
+        msg.className = "text-xs text-red-600";
+        msg.textContent = "This Employee ID, mobile number, or email is already registered.";
+        return;
+      }
+
+      const newUser = {
+        id: "USR" + (USERS.length + 1),
+        empId,
+        name,
+        mobile,
+        email,
+        role: "User",
+        dept,
+        avatar: pendingRegAvatar || ""
+      };
+      USERS.push(newUser);
+      saveToStorage();
+      clearRegAvatar();
+
+      msg.className = "text-xs text-emerald-600 font-semibold";
+      msg.textContent = "Registration Successful! Switching to OTP login...";
+      setTimeout(() => {
+        switchAuthTab('login');
+        document.getElementById('loginMobile').value = mobile;
+        handleSendOtp();
+      }, 1000);
+    }
+
+    function logout() {
+      currentUser = null;
+      currentOtp = null;
+      otpUserId = null;
+      otpExpiresAt = 0;
+      clearInterval(otpTimerInterval);
+      clearInterval(autoRefreshInterval);
+      clearInterval(slaTimerInterval);
+      autoRefreshInterval = null;
+      slaTimerInterval = null;
+      closeProfileModal();
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('otpBox').classList.add('hidden');
+    }
+
+    function updateUserProfileUI() {
+      if (!currentUser) return;
+      document.getElementById('userHeaderMeta').textContent =
+        `${currentUser.name} (${currentUser.empId}) • ${currentUser.role} • Dept: ${currentUser.dept}`;
+
+      const headerAvatarContainer = document.getElementById('headerAvatarContainer');
+      if (headerAvatarContainer) {
+        if (currentUser.avatar) {
+          headerAvatarContainer.innerHTML = `<img src="${currentUser.avatar}" alt="${escapeHtml(currentUser.name)}" class="w-full h-full object-cover">`;
+        } else {
+          headerAvatarContainer.innerHTML = escapeHtml(getUserInitials(currentUser.name));
+        }
+      }
+
+      const headerNameEl = document.getElementById('headerUserNameText');
+      if (headerNameEl) {
+        headerNameEl.textContent = currentUser.name.split(' ')[0] || 'Profile';
+      }
+    }
+
+    function openProfileModal() {
+      if (!currentUser) return;
+      document.getElementById('profileModalName').textContent = currentUser.name;
+      document.getElementById('profileModalEmpId').textContent = currentUser.empId;
+      document.getElementById('profileModalRole').textContent = currentUser.role;
+      document.getElementById('profileModalDept').textContent = currentUser.dept;
+      document.getElementById('profileModalMobile').textContent = currentUser.mobile;
+      document.getElementById('profileModalEmail').textContent = currentUser.email;
+
+      renderProfileModalAvatar();
+
+      const modal = document.getElementById('profileModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function renderProfileModalAvatar() {
+      const container = document.getElementById('profileModalAvatarContainer');
+      const rmBtn = document.getElementById('profileModalRemoveAvatarBtn');
+      if (!container) return;
+
+      if (currentUser.avatar) {
+        container.innerHTML = `<img src="${currentUser.avatar}" alt="${escapeHtml(currentUser.name)}" class="w-full h-full object-cover">`;
+        if (rmBtn) rmBtn.classList.remove('hidden');
+      } else {
+        container.innerHTML = escapeHtml(getUserInitials(currentUser.name));
+        if (rmBtn) rmBtn.classList.add('hidden');
+      }
+    }
+
+    function handleProfileAvatarChange(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      processImageFile(file, (dataUrl) => {
+        if (!dataUrl) {
+          alert('Could not process this image. Please choose another PNG, JPG or WEBP image.');
+          return;
+        }
+        currentUser.avatar = dataUrl;
+        const u = USERS.find(x => x.id === currentUser.id);
+        if (u) u.avatar = dataUrl;
+        saveToStorage();
+        renderProfileModalAvatar();
+        updateUserProfileUI();
+        renderTickets();
+        if (activeTicketId) openTicketModal(activeTicketId);
+      });
+      e.target.value = '';
+    }
+
+    function removeProfileAvatar() {
+      if (!confirm('Remove your profile picture?')) return;
+      currentUser.avatar = '';
+      const u = USERS.find(x => x.id === currentUser.id);
+      if (u) u.avatar = '';
+      saveToStorage();
+      renderProfileModalAvatar();
+      updateUserProfileUI();
+      renderTickets();
+      if (activeTicketId) openTicketModal(activeTicketId);
+    }
+
+    function launchApp() {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+      autoRefreshInterval = setInterval(manualRefresh, 5 * 60 * 1000);
+
+      if (slaTimerInterval) clearInterval(slaTimerInterval);
+      slaTimerInterval = setInterval(() => {
+        updateSlaAndAging();
+        renderDashboard();
+      }, 60 * 1000); // Recalculate SLA every minute
+
+      updateUserProfileUI();
+
+      const reportTypeSelect = document.getElementById('repType');
+      const assigneeReportOption = reportTypeSelect.querySelector('option[value="assignee"]');
+      assigneeReportOption.disabled = !canViewOrganizationReports();
+      if (assigneeReportOption.disabled) reportTypeSelect.value = 'cumulation';
+
+      updateSlaAndAging();
+      populateCategoryOptions();
+      populateFilterCategories();
+      initReportDates();
+      renderNotifications();
+      renderDashboard();
+      renderTickets();
+      navigate('dashboard');
+    }
+
+    function navigate(view) {
+      ['dashboard', 'mytickets', 'create', 'reports'].forEach(v => {
+        document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+        const btn = document.getElementById(`nav-${v}`);
+        if (v === view) {
+          btn.className = "nav-btn py-2.5 px-4 border-b-2 border-white text-white flex items-center gap-2 font-semibold";
+        } else {
+          btn.className = "nav-btn py-2.5 px-4 border-b-2 border-transparent text-blue-200 hover:text-white flex items-center gap-2";
+        }
+      });
+      if (view === 'dashboard') renderDashboard();
+      if (view === 'mytickets') renderTickets();
+      if (view === 'reports') generateReports();
+    }
+
+    function getAuthorizedTickets() {
+      if (!currentUser) return [];
+      if (currentUser.role === 'Super Admin') return tickets;
+      if (currentUser.role === 'Department Lead') return tickets.filter(t => t.dept === currentUser.dept);
+      if (currentUser.role === 'Assignee') return tickets.filter(t => t.assigneeId === currentUser.id || t.creatorId === currentUser.id);
+      return tickets.filter(t => t.creatorId === currentUser.id);
+    }
+
+    function canViewOrganizationReports() {
+      return currentUser && (currentUser.role === 'Department Lead' || currentUser.role === 'Super Admin');
+    }
+
+    // Dynamic SLA and Ticket Aging Engine
+    function updateSlaAndAging() {
+      const now = new Date();
+
+      tickets.forEach(t => {
+        // Calculate ageDays dynamically
+        const createdDate = new Date(t.createdAt.replace(' ', 'T'));
+        const validCreated = isNaN(createdDate.getTime()) ? now : createdDate;
+        const diffMs = now.getTime() - validCreated.getTime();
+        t.ageDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+        // If ticket is resolved, its SLA status is finalized
+        if (t.status === 'Resolved') return;
+
+        // If ticket is On Hold, SLA is paused
+        if (t.status === 'On Hold') return;
+
+        // Determine target deadline
+        let deadlineMs;
+        if (t.expectedDate) {
+          const expDate = new Date(`${t.expectedDate}T23:59:59`);
+          if (!isNaN(expDate.getTime())) {
+            deadlineMs = expDate.getTime();
+          }
+        }
+
+        const limitHours = SLA_LIMITS_HOURS[t.priority] || 24;
+        const priorityDeadlineMs = validCreated.getTime() + limitHours * 3600 * 1000;
+        deadlineMs = deadlineMs ? Math.min(deadlineMs, priorityDeadlineMs) : priorityDeadlineMs;
+
+        const totalAllowedMs = Math.max(1, deadlineMs - validCreated.getTime());
+        const elapsedMs = now.getTime() - validCreated.getTime();
+        const ratio = elapsedMs / totalAllowedMs;
+        const prevSlaState = t.slaState;
+
+        if (elapsedMs >= totalAllowedMs) {
+          t.slaState = 'Breached';
+          const overdueRatio = (elapsedMs - totalAllowedMs) / totalAllowedMs;
+          t.escalationLevel = overdueRatio > 0.5 ? 2 : 1;
+
+          // Notify on SLA breach if not already notified
+          if (prevSlaState !== 'Breached' && !notifications.some(n => n.ticketId === t.id && n.severity === 'Breached')) {
+            notifications.unshift({
+              id: Date.now() + Math.random(),
+              text: `Ticket #${t.id} has breached SLA deadline and escalated to Level ${t.escalationLevel}.`,
+              severity: "Breached",
+              ticketId: t.id,
+              read: false
+            });
+          }
+        } else if (ratio >= 0.70) {
+          t.slaState = 'Warning';
+          t.escalationLevel = 0;
+          if (prevSlaState !== 'Warning' && !notifications.some(n => n.ticketId === t.id && n.severity === 'Warning')) {
+            notifications.unshift({
+              id: Date.now() + Math.random(),
+              text: `Ticket #${t.id} is approaching SLA limit (70%+ elapsed).`,
+              severity: "Warning",
+              ticketId: t.id,
+              read: false
+            });
+          }
+        } else {
+          t.slaState = 'Normal';
+          t.escalationLevel = 0;
+        }
+      });
+
+      saveToStorage();
+    }
+
+    function renderDashboard() {
+      const scoped = getAuthorizedTickets();
+      const total = scoped.length;
+      const pending = scoped.filter(t => t.status === 'New' || t.status === 'Assigned' || t.status === 'Reopened').length;
+      const inProg = scoped.filter(t => t.status === 'In Progress' || t.status === 'On Hold').length;
+      const resolved = scoped.filter(t => t.status === 'Resolved').length;
+      const breached = scoped.filter(t => t.slaState === 'Breached').length;
+      const slaRate = total ? Math.round(((total - breached) / total) * 100) : 100;
+
+      document.getElementById('dashboardTitle').textContent = `${currentUser.role} Dashboard`;
+      document.getElementById('dashboardSubtitle').textContent =
+        currentUser.role === 'Super Admin'
+          ? 'Consolidated organization-wide KPIs, SLA adherence, and cross-department analytics'
+          : currentUser.role === 'Department Lead'
+          ? `Department control panel (${currentUser.dept}) • Real-time SLA adherence & aging oversight`
+          : currentUser.role === 'Assignee'
+          ? 'Tickets assigned to you and their resolution progress'
+          : 'Personalized operational view of your submitted tickets';
+
+      const kpis = [
+        { label: "Total Tickets", val: total, color: "bg-blue-600", filter: "ALL" },
+        { label: "Pending / New", val: pending, color: "bg-amber-500", filter: "PENDING" },
+        { label: "In-Progress", val: inProg, color: "bg-blue-500", filter: "IN_PROGRESS" },
+        { label: "Resolved", val: resolved, color: "bg-emerald-600", filter: "Resolved" },
+        { label: "SLA Breached", val: breached, color: "bg-red-600", filter: "SLA_BREACHED" },
+        { label: "SLA Adherence", val: `${slaRate}%`, color: "bg-indigo-600", filter: "ALL" }
+      ];
+
+      document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+        <button type="button" onclick="drillDownStatus('${k.filter}')" class="card-panel card-panel-hover p-4 text-left cursor-pointer w-full transition">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold">${k.label}</span>
+            <span class="w-2.5 h-2.5 rounded-full ${k.color}"></span>
+          </div>
+          <div class="text-2xl font-bold text-slate-800">${k.val}</div>
+          <div class="mt-2 text-[10px] text-slate-400 flex items-center gap-1">
+            <i class="fa-solid fa-arrow-pointer text-slate-400"></i> Click to filter tickets
+          </div>
+        </button>
+      `).join('');
+
+      const statuses = [
+        { name: "New / Pending", count: pending, bar: "bg-amber-500", filter: "PENDING" },
+        { name: "In Progress / On Hold", count: inProg, bar: "bg-blue-500", filter: "IN_PROGRESS" },
+        { name: "Resolved", count: resolved, bar: "bg-emerald-500", filter: "Resolved" },
+        { name: "SLA Breached (Overdue)", count: breached, bar: "bg-red-600", filter: "SLA_BREACHED" }
+      ];
+
+      document.getElementById('statusChartContainer').innerHTML = statuses.map(s => {
+        const pct = total ? Math.round((s.count / total) * 100) : 0;
+        return `
+          <button type="button" onclick="drillDownStatus('${s.filter}')" class="w-full text-left cursor-pointer hover:opacity-85 transition">
+            <div class="flex items-center justify-between mb-1.5 font-medium">
+              <span class="text-slate-700">${s.name}</span>
+              <span class="text-slate-600">${s.count} (${pct}%)</span>
+            </div>
+            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="${s.bar} h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const activeTickets = scoped.filter(t => t.status !== 'Resolved');
+      const activeTotal = activeTickets.length;
+      const age0_2 = activeTickets.filter(t => t.ageDays <= 2).length;
+      const age3_5 = activeTickets.filter(t => t.ageDays >= 3 && t.ageDays <= 5).length;
+      const age6Plus = activeTickets.filter(t => t.ageDays >= 6).length;
+
+      document.getElementById('categoryChartContainer').innerHTML = `
+        <div class="space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-1 font-medium">
+              <span>0–2 Days (Recent / On Track)</span>
+              <span>${age0_2} Tickets (${activeTotal ? Math.round((age0_2 / activeTotal) * 100) : 0}%)</span>
+            </div>
+            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="bg-blue-500 h-full rounded-full transition-all duration-300" style="width:${activeTotal ? (age0_2 / activeTotal) * 100 : 0}%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1 font-medium">
+              <span>3–5 Days (SLA Attention Required)</span>
+              <span>${age3_5} Tickets (${activeTotal ? Math.round((age3_5 / activeTotal) * 100) : 0}%)</span>
+            </div>
+            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width:${activeTotal ? (age3_5 / activeTotal) * 100 : 0}%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1 font-medium">
+              <span>6+ Days (Critical / Long-Pending)</span>
+              <span>${age6Plus} Tickets (${activeTotal ? Math.round((age6Plus / activeTotal) * 100) : 0}%)</span>
+            </div>
+            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="bg-red-500 h-full rounded-full transition-all duration-300" style="width:${activeTotal ? (age6Plus / activeTotal) * 100 : 0}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const execCard = document.getElementById('execSummaryCard');
+      if (currentUser.role === 'Super Admin' || currentUser.role === 'Department Lead') {
+        execCard.classList.remove('hidden');
+        const depts = currentUser.role === 'Super Admin' ? ['IT', 'HR'] : [currentUser.dept];
+        document.getElementById('deptSummaryBody').innerHTML = depts.map(d => {
+          const dt = tickets.filter(t => t.dept === d);
+          const dTotal = dt.length;
+          const dPend = dt.filter(t => t.status !== 'Resolved').length;
+          const dRes = dt.filter(t => t.status === 'Resolved').length;
+          const dBreach = dt.filter(t => t.slaState === 'Breached').length;
+          const dSla = dTotal ? Math.round(((dTotal - dBreach) / dTotal) * 100) : 100;
+          const badgeClass = dSla >= 90 ? 'bg-emerald-100 text-emerald-800' : dSla >= 75 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3 font-semibold text-slate-800">${d === 'IT' ? 'IT Department' : 'HR & Finance'}</td>
+              <td class="p-3 font-medium">${dTotal}</td>
+              <td class="p-3 font-medium text-amber-600">${dPend}</td>
+              <td class="p-3 font-medium text-emerald-600">${dRes}</td>
+              <td class="p-3 font-medium text-red-600">${dBreach}</td>
+              <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${dSla}%</span></td>
+              <td class="p-3 text-slate-600">4.2 Hrs</td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        execCard.classList.add('hidden');
+      }
+    }
+
+    function drillDownStatus(statusFilter) {
+      ticketPage = 0;
+      document.getElementById('filterStatus').value = statusFilter;
+      document.getElementById('filterDept').value = 'ALL';
+      document.getElementById('filterCategory').value = 'ALL';
+      document.getElementById('filterFloor').value = 'ALL';
+      document.getElementById('filterSearch').value = '';
+      navigate('mytickets');
+    }
+
+    function populateFilterCategories() {
+      const sel = document.getElementById('filterCategory');
+      const allCats = [...CATEGORIES.IT, ...CATEGORIES.HR];
+      sel.innerHTML = '<option value="ALL">All Categories</option>' + allCats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function resetTicketFilters() {
+      ticketPage = 0;
+      document.getElementById('filterDept').value = 'ALL';
+      document.getElementById('filterCategory').value = 'ALL';
+      document.getElementById('filterStatus').value = 'ACTIVE';
+      document.getElementById('filterFloor').value = 'ALL';
+      document.getElementById('filterSearch').value = '';
+      renderTickets();
+    }
+
+    function renderTickets(resetPage = false) {
+      if (resetPage) ticketPage = 0;
+      let list = getAuthorizedTickets();
+      const fDept = document.getElementById('filterDept').value;
+      const fCat = document.getElementById('filterCategory').value;
+      const fStatus = document.getElementById('filterStatus').value;
+      const fFloor = document.getElementById('filterFloor').value;
+      const fSearch = document.getElementById('filterSearch').value.trim().toLowerCase();
+
+      if (fDept !== 'ALL') list = list.filter(t => t.dept === fDept);
+      if (fCat !== 'ALL') list = list.filter(t => t.category === fCat);
+      if (fStatus === 'ACTIVE') {
+        list = list.filter(t => t.status === 'New' || t.status === 'Assigned' || t.status === 'Reopened' || t.status === 'In Progress' || t.status === 'On Hold');
+      } else if (fStatus === 'PENDING') {
+        list = list.filter(t => t.status === 'New' || t.status === 'Assigned' || t.status === 'Reopened');
+      } else if (fStatus === 'IN_PROGRESS') {
+        list = list.filter(t => t.status === 'In Progress' || t.status === 'On Hold');
+      } else if (fStatus === 'SLA_BREACHED') {
+        list = list.filter(t => t.slaState === 'Breached');
+      } else if (fStatus !== 'ALL') {
+        list = list.filter(t => t.status === fStatus);
+      }
+      if (fFloor !== 'ALL') list = list.filter(t => t.floor === fFloor);
+      if (fSearch) {
+        list = list.filter(t =>
+          t.id.toLowerCase().includes(fSearch) ||
+          t.title.toLowerCase().includes(fSearch) ||
+          t.creatorName.toLowerCase().includes(fSearch) ||
+          t.creatorEmpId.toLowerCase().includes(fSearch) ||
+          (t.assigneeName && t.assigneeName.toLowerCase().includes(fSearch))
+        );
+      }
+
+      list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      const container = document.getElementById('ticketsListContainer');
+      const pagination = document.getElementById('ticketPagination');
+      if (list.length === 0) {
+        container.innerHTML = '<div class="card-panel p-8 text-center text-sm text-slate-500"><i class="fa-solid fa-inbox text-3xl text-slate-300 mb-2 block"></i>No tickets found matching your filter criteria.</div>';
+        pagination.classList.add('hidden');
+        return;
+      }
+
+      const pageCount = Math.ceil(list.length / ticketsPerPage);
+      ticketPage = Math.min(ticketPage, pageCount - 1);
+      const pageStart = ticketPage * ticketsPerPage;
+      container.innerHTML = list.slice(pageStart, pageStart + ticketsPerPage).map(t => {
+        const slaBadge = t.slaState === 'Breached'
+          ? `● SLA Breached (Level ${t.escalationLevel})`
+          : t.slaState === 'Warning'
+          ? `● SLA Warning`
+          : `● Within SLA`;
+
+        const slaColor = t.slaState === 'Breached'
+          ? 'text-red-600 font-bold'
+          : t.slaState === 'Warning'
+          ? 'text-amber-600 font-bold'
+          : 'text-emerald-600 font-semibold';
+
+        const statusClass = t.status === 'Resolved'
+          ? 'bg-emerald-600 text-white'
+          : t.status === 'In Progress'
+          ? 'bg-blue-600 text-white'
+          : t.status === 'On Hold'
+          ? 'bg-purple-600 text-white'
+          : t.status === 'Assigned'
+          ? 'bg-indigo-600 text-white'
+          : 'bg-slate-600 text-white';
+
+        const creatorUser = USERS.find(u => u.id === t.creatorId || u.empId === t.creatorEmpId || u.name === t.creatorName);
+        const assigneeUser = t.assigneeId ? USERS.find(u => u.id === t.assigneeId || u.name === t.assigneeName) : (t.assigneeName ? USERS.find(u => u.name === t.assigneeName) : null);
+        const creatorAvatar = getAvatarBadgeHtml(t.creatorName, creatorUser ? creatorUser.avatar : null, 'w-7 h-7 text-[10px]');
+        const assigneeAvatar = t.assigneeName
+          ? getAvatarBadgeHtml(t.assigneeName, assigneeUser ? assigneeUser.avatar : null, 'w-7 h-7 text-[10px]')
+          : `<div class="w-7 h-7 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-[10px] shrink-0 font-bold"><i class="fa-solid fa-user-xmark"></i></div>`;
+
+        return `
+          <div class="card-panel card-panel-hover p-4 transition-all">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+              <div class="space-y-1.5">
+                <div class="flex items-center flex-wrap gap-2">
+                  <span class="font-extrabold text-slate-800 tracking-wide">${escapeHtml(t.id)}</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${statusClass}">${escapeHtml(t.status)}</span>
+                  <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-semibold border">P${t.priority}</span>
+                  <span class="text-[10px] uppercase tracking-[0.1em] text-slate-500 font-semibold">${escapeHtml(t.dept)} / ${escapeHtml(t.category)}</span>
+                </div>
+                <div class="text-[11px] uppercase tracking-[0.1em] text-slate-400 font-medium">Floor: ${escapeHtml(t.floor)}</div>
+              </div>
+              <button onclick="openTicketModal('${t.id}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 self-start">
+                <i class="fa-solid fa-eye"></i> View Details
+              </button>
+            </div>
+
+            <div class="mt-2.5">
+              <h4 class="text-base font-bold text-slate-800">${escapeHtml(t.title)}</h4>
+              <p class="mt-1 text-xs text-slate-600 line-clamp-2 leading-relaxed">${escapeHtml(t.description)}</p>
+            </div>
+
+            <div class="mt-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-center gap-2.5 min-w-0">
+                ${creatorAvatar}
+                <div class="min-w-0 flex-1">
+                  <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Raised By</span>
+                  <strong class="font-bold text-slate-800 truncate block">${escapeHtml(t.creatorName)} (${escapeHtml(t.creatorEmpId)})</strong>
+                </div>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-center gap-2.5 min-w-0">
+                ${assigneeAvatar}
+                <div class="min-w-0 flex-1">
+                  <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Assigned To</span>
+                  <strong class="font-bold text-slate-800 truncate block">${escapeHtml(t.assigneeName || 'Unassigned')}</strong>
+                </div>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 min-w-0"><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Target Completion</span><strong class="font-bold text-slate-800 truncate block">${escapeHtml(t.expectedDate || 'N/A')}</strong></div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 min-w-0"><span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Assignee ETA</span><strong class="font-bold text-slate-800 truncate block">${escapeHtml(t.eta ? t.eta.replace('T', ' ') : 'Pending ETA')}</strong></div>
+            </div>
+
+            <div class="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+              <span class="${slaColor}">${escapeHtml(slaBadge)}</span>
+              <span class="text-slate-400">Created: ${escapeHtml(t.createdAt)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      pagination.classList.toggle('hidden', pageCount <= 1);
+      pagination.classList.toggle('flex', pageCount > 1);
+      document.getElementById('ticketPageText').textContent = `Page ${ticketPage + 1} of ${pageCount} (${list.length} tickets)`;
+      document.getElementById('ticketPrevBtn').disabled = ticketPage === 0;
+      document.getElementById('ticketNextBtn').disabled = ticketPage === pageCount - 1;
+    }
+
+    function changeTicketPage(pageDelta) {
+      ticketPage += pageDelta;
+      renderTickets();
+    }
+
+    function populateCategoryOptions() {
+      const deptEl = document.getElementById('tDept');
+      const dept = (deptEl && deptEl.value) || 'IT';
+      const catSel = document.getElementById('tCategory');
+      if (!catSel) return;
+      const list = CATEGORIES[dept] || CATEGORIES.IT || [];
+      catSel.innerHTML = list.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function submitNewTicket(e) {
+      e.preventDefault();
+      const dept = document.getElementById('tDept').value;
+      const category = document.getElementById('tCategory').value;
+      const floor = document.getElementById('tFloor').value;
+      const priority = parseInt(document.getElementById('tPriority').value, 10);
+      const expectedDate = document.getElementById('tExpectedDate').value;
+      const title = document.getElementById('tTitle').value.trim();
+      const description = document.getElementById('tDesc').value.trim();
+
+      const floorErr = document.getElementById('floorError');
+      if (!floor) {
+        floorErr.classList.remove('hidden');
+        return;
+      }
+      floorErr.classList.add('hidden');
+
+      const expErr = document.getElementById('expectedDateError');
+      if (expectedDate) {
+        const chosen = new Date(`${expectedDate}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(today);
+        maxDate.setDate(maxDate.getDate() + 90);
+        if (chosen < today || chosen > maxDate) {
+          expErr.classList.remove('hidden');
+          return;
+        }
+      }
+      expErr.classList.add('hidden');
+
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const deptTicketsThisMonth = tickets.filter(t => t.id.startsWith(`T${dept}${yyyy}${mm}`));
+      const seq = String(deptTicketsThisMonth.length + 1).padStart(2, '0');
+      const newTicketId = `T${dept}${yyyy}${mm}${seq}`;
+
+      const newTicket = {
+        id: newTicketId,
+        dept,
+        category,
+        floor,
+        priority,
+        title,
+        description,
+        creatorId: currentUser.id,
+        creatorName: currentUser.name,
+        creatorEmpId: currentUser.empId,
+        assigneeId: null,
+        assigneeName: null,
+        status: "New", // Starts as New until assigned by Lead/Admin
+        createdAt: formatDateForStorage(now),
+        expectedDate: expectedDate || null,
+        eta: null,
+        etaEdits: 0,
+        resolvedAt: null,
+        resolvedBy: null,
+        resolution: null,
+        slaState: "Normal",
+        escalationLevel: 0,
+        ageDays: 0,
+        history: [
+          { time: formatDateDisplay(now), actor: currentUser.name, action: `Ticket Created (Floor: ${floor}, Priority: P${priority})` }
+        ]
+      };
+
+      tickets.unshift(newTicket);
+      notifications.unshift({
+        id: Date.now() + Math.random(),
+        text: `New Ticket Raised: ${newTicketId} (${dept}/${category}) on ${floor}.`,
+        severity: "Normal",
+        ticketId: newTicketId,
+        read: false
+      });
+
+      updateSlaAndAging();
+      saveToStorage();
+
+      document.getElementById('createTicketForm').reset();
+      populateCategoryOptions();
+      resetTicketFilters();
+      renderNotifications();
+      navigate('mytickets');
+    }
+
+    function openTicketModal(id) {
+      const t = tickets.find(x => x.id === id);
+      if (!t) return;
+      activeTicketId = id;
+
+      document.getElementById('modalTicketId').textContent = `${t.id} • ${t.dept} / ${t.category}`;
+      document.getElementById('modalTicketTitle').textContent = t.title;
+      document.getElementById('modalDescription').textContent = t.description;
+
+      const creatorUser = USERS.find(u => u.id === t.creatorId || u.empId === t.creatorEmpId || u.name === t.creatorName);
+      const assigneeUser = t.assigneeId ? USERS.find(u => u.id === t.assigneeId || u.name === t.assigneeName) : (t.assigneeName ? USERS.find(u => u.name === t.assigneeName) : null);
+      const creatorAvatarModal = getAvatarBadgeHtml(t.creatorName, creatorUser ? creatorUser.avatar : null, 'w-8 h-8 text-xs');
+      const assigneeAvatarModal = t.assigneeName
+        ? getAvatarBadgeHtml(t.assigneeName, assigneeUser ? assigneeUser.avatar : null, 'w-8 h-8 text-xs')
+        : `<div class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs shrink-0 font-bold"><i class="fa-solid fa-user-xmark"></i></div>`;
+
+      document.getElementById('modalMetaGrid').innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0">
+          ${creatorAvatarModal}
+          <div class="min-w-0">
+            <div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Raised By</div>
+            <div class="mt-0.5 font-bold text-slate-800 truncate">${escapeHtml(t.creatorName)} (${escapeHtml(t.creatorEmpId)})</div>
+          </div>
+        </div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Floor Location</div><div class="mt-0.5 font-bold text-slate-800">${escapeHtml(t.floor)}</div></div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Priority Level</div><div class="mt-0.5 font-bold text-slate-800">Priority ${t.priority}</div></div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Current Status</div><div class="mt-0.5 font-bold text-slate-800">${escapeHtml(t.status)}</div></div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">SLA Status</div><div class="mt-0.5 font-bold text-slate-800 ${t.slaState === 'Breached' ? 'text-red-600' : t.slaState === 'Warning' ? 'text-amber-600' : 'text-emerald-600'}">${escapeHtml(t.slaState)}</div></div>
+        <div class="flex items-center gap-2.5 min-w-0">
+          ${assigneeAvatarModal}
+          <div class="min-w-0">
+            <div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Assigned To</div>
+            <div class="mt-0.5 font-bold text-slate-800 truncate">${escapeHtml(t.assigneeName || 'Unassigned')}</div>
+          </div>
+        </div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Target Completion</div><div class="mt-0.5 font-bold text-slate-800">${escapeHtml(t.expectedDate || 'Not Specified')}</div></div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Assignee ETA</div><div class="mt-0.5 font-bold text-slate-800">${escapeHtml(t.eta ? t.eta.replace('T', ' ') : 'Not Set')}</div></div>
+        <div><div class="text-slate-400 uppercase tracking-[0.1em] text-[10px] font-semibold">Created Timestamp</div><div class="mt-0.5 font-bold text-slate-800">${escapeHtml(t.createdAt)}</div></div>
+      `;
+
+      // Resolution Summary Banner
+      const resBox = document.getElementById('modalResolutionBox');
+      if (t.status === 'Resolved' && t.resolution) {
+        resBox.classList.remove('hidden');
+        document.getElementById('modalResolvedMeta').textContent = `Resolved by ${t.resolvedBy || 'Technician'} • ${t.resolvedAt || 'Completed'}`;
+        document.getElementById('modalResolutionText').textContent = t.resolution;
+      } else {
+        resBox.classList.add('hidden');
+      }
+
+      // Lead/Admin Reassignment Box
+      const leadBox = document.getElementById('leadAssignBox');
+      if (currentUser.role === 'Department Lead' || currentUser.role === 'Super Admin') {
+        leadBox.classList.remove('hidden');
+        const members = USERS.filter(u => u.role === 'Assignee' && (currentUser.role === 'Super Admin' || u.dept === t.dept));
+        document.getElementById('assignMemberSelect').innerHTML = '<option value="">Select Team Member</option>' + members.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)} (${escapeHtml(m.dept)})</option>`).join('');
+      } else {
+        leadBox.classList.add('hidden');
+      }
+
+      // Assignee ETA Commitment Box
+      const etaBox = document.getElementById('assigneeEtaBox');
+      if ((currentUser.role === 'Assignee' || currentUser.role === 'Department Lead' || currentUser.role === 'Super Admin') && t.status !== 'Resolved') {
+        etaBox.classList.remove('hidden');
+        document.getElementById('etaInput').value = t.eta || '';
+        document.getElementById('etaErrorMsg').classList.add('hidden');
+      } else {
+        etaBox.classList.add('hidden');
+      }
+
+      // Dynamic Role-Appropriate Status Options
+      const statusSel = document.getElementById('modalStatusSelect');
+      statusSel.innerHTML = '';
+      const roleHint = document.getElementById('roleStageHint');
+
+      if (currentUser.role === 'User') {
+        roleHint.textContent = "You can add remarks or reopen resolved tickets.";
+        statusSel.innerHTML = `<option value="${t.status}">${t.status} (Current)</option>`;
+        if (t.status === 'Resolved') {
+          statusSel.innerHTML += `<option value="Reopened">Reopen Ticket</option>`;
+        }
+      } else if (currentUser.role === 'Assignee') {
+        roleHint.textContent = "You can update operational progress and set ETA.";
+        const allowed = ['In Progress', 'On Hold', 'Resolved'];
+        if (t.status === 'New') allowed.unshift('New');
+        if (t.status === 'Assigned') allowed.unshift('Assigned');
+        if (t.status === 'Resolved') allowed.push('Reopened');
+
+        allowed.forEach(st => {
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.textContent = st === 'On Hold' ? 'On Hold (Pause SLA)' : st === 'Reopened' ? 'Reopen Ticket' : st;
+          if (st === t.status) opt.selected = true;
+          statusSel.appendChild(opt);
+        });
+      } else {
+        // Department Lead & Super Admin
+        roleHint.textContent = "Full administrative control over stages and assignments.";
+        const allStatuses = ['New', 'Assigned', 'In Progress', 'On Hold', 'Resolved', 'Reopened'];
+        allStatuses.forEach(st => {
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.textContent = st === 'On Hold' ? 'On Hold (Pause SLA)' : st === 'Reopened' ? 'Reopen Ticket' : st;
+          if (st === 'Reopened' && t.status !== 'Resolved' && t.status !== 'Reopened') {
+            opt.disabled = true;
+          }
+          if (st === t.status) opt.selected = true;
+          statusSel.appendChild(opt);
+        });
+      }
+
+      document.getElementById('modalRemarkInput').value = '';
+      document.getElementById('modalActionError').classList.add('hidden');
+
+      renderModalHistory(t);
+      const modal = document.getElementById('ticketModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function renderModalHistory(t) {
+      document.getElementById('modalHistoryList').innerHTML = t.history.map(h => {
+        const actorUser = USERS.find(u => u.name === h.actor);
+        const avatarBadge = getAvatarBadgeHtml(h.actor, actorUser ? actorUser.avatar : null, 'w-6 h-6 text-[9px]');
+        return `
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+            <div class="font-bold text-slate-800 text-[11px] flex justify-between items-center">
+              <div class="flex items-center gap-1.5 min-w-0">
+                ${avatarBadge}
+                <span class="truncate">${escapeHtml(h.actor)}</span>
+              </div>
+              <span class="text-slate-400 font-normal text-[10px] shrink-0 ml-2">${escapeHtml(h.time)}</span>
+            </div>
+            <div class="mt-1 text-slate-600 leading-snug text-xs pl-7.5">${escapeHtml(h.action)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function closeTicketModal() {
+      const modal = document.getElementById('ticketModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      activeTicketId = null;
+    }
+
+    function assignTicketToMember() {
+      const t = tickets.find(x => x.id === activeTicketId);
+      if (!t) return;
+      const memberId = document.getElementById('assignMemberSelect').value;
+      const err = document.getElementById('modalActionError');
+      err.classList.add('hidden');
+
+      if (!memberId) {
+        err.textContent = "Please select a valid team member from the dropdown.";
+        err.classList.remove('hidden');
+        return;
+      }
+      if (t.assigneeId === memberId) {
+        err.textContent = "Reassignment failed: the selected user is already assigned.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const member = USERS.find(u => u.id === memberId);
+      if (!member) return;
+      const prev = t.assigneeName || "Unassigned";
+      t.assigneeId = member.id;
+      t.assigneeName = member.name;
+      if (t.status === 'New') {
+        t.status = 'Assigned';
+      }
+
+      const now = new Date();
+      t.history.unshift({
+        time: formatDateDisplay(now),
+        actor: currentUser.name,
+        action: `Assigned ticket from [${prev}] to [${member.name}] (SLA timer continues)`
+      });
+
+      notifications.unshift({
+        id: Date.now() + Math.random(),
+        text: `Ticket [${t.id}] assigned to ${member.name} by ${currentUser.name}.`,
+        severity: "Normal",
+        ticketId: t.id,
+        read: false
+      });
+
+      saveToStorage();
+      renderNotifications();
+      openTicketModal(t.id);
+      renderTickets();
+      renderDashboard();
+    }
+
+    function saveTicketEta() {
+      const t = tickets.find(x => x.id === activeTicketId);
+      if (!t) return;
+      const etaVal = document.getElementById('etaInput').value;
+      const err = document.getElementById('etaErrorMsg');
+      err.classList.add('hidden');
+
+      if (!etaVal) {
+        err.textContent = "Please select a valid future date and time for ETA commitment.";
+        err.classList.remove('hidden');
+        return;
+      }
+      const chosen = new Date(etaVal);
+      const now = new Date();
+      if (chosen <= now) {
+        err.textContent = "Invalid ETA. Please choose a future date and time.";
+        err.classList.remove('hidden');
+        return;
+      }
+      if (t.etaEdits >= 1 && currentUser.role === 'Assignee' && t.status === 'In Progress') {
+        err.textContent = "Assignee modification limit (1) reached. Further ETA edits require Department Lead approval.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const oldEta = t.eta ? t.eta.replace('T', ' ') : 'None';
+      t.eta = etaVal;
+      t.etaEdits = (t.etaEdits || 0) + 1;
+
+      const nowD = new Date();
+      t.history.unshift({
+        time: formatDateDisplay(nowD),
+        actor: currentUser.name,
+        action: `ETA updated from [${oldEta}] to [${etaVal.replace('T', ' ')}]`
+      });
+
+      notifications.unshift({
+        id: Date.now() + Math.random(),
+        text: `ETA committed for Ticket #${t.id} (${etaVal.replace('T', ' ')}).`,
+        severity: "Normal",
+        ticketId: t.id,
+        read: false
+      });
+
+      updateSlaAndAging();
+      saveToStorage();
+      renderNotifications();
+      openTicketModal(t.id);
+      renderTickets();
+    }
+
+    function submitTicketUpdate() {
+      const t = tickets.find(x => x.id === activeTicketId);
+      if (!t) return;
+      const newStatus = document.getElementById('modalStatusSelect').value;
+      const remark = document.getElementById('modalRemarkInput').value.trim();
+      const err = document.getElementById('modalActionError');
+      err.classList.add('hidden');
+
+      if (!remark) {
+        err.textContent = "Mandatory comment/remark is required for recording an audit entry.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      if (currentUser.role === 'User' && newStatus !== t.status && newStatus !== 'Reopened') {
+        err.textContent = "Access Restricted: Only Department Leads or Assignees can transition active ticket statuses.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      if (newStatus === 'In Progress' && !t.eta) {
+        err.textContent = "Assignee ETA commitment is mandatory before setting status to 'In Progress'.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      if (newStatus === 'Reopened' && t.status !== 'Resolved' && t.status !== 'Reopened') {
+        err.textContent = "Only resolved tickets can be reopened.";
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const now = new Date();
+      const timeStr = formatDateDisplay(now);
+      const isStatusChange = newStatus !== t.status;
+      const oldStatus = t.status;
+      t.status = newStatus;
+
+      if (newStatus === 'Resolved') {
+        t.resolvedBy = currentUser.name;
+        t.resolution = remark;
+        t.resolvedAt = timeStr;
+      } else if (newStatus === 'Reopened') {
+        t.resolvedBy = null;
+        t.resolution = null;
+        t.resolvedAt = null;
+      }
+
+      t.history.unshift({
+        time: timeStr,
+        actor: currentUser.name,
+        action: isStatusChange
+          ? `Status changed from [${oldStatus}] to [${newStatus}] | Note: "${remark}"`
+          : `Remark added: "${remark}"`
+      });
+
+      notifications.unshift({
+        id: Date.now() + Math.random(),
+        text: isStatusChange
+          ? `Ticket #${t.id} moved to ${newStatus} by ${currentUser.name}.`
+          : `New remark logged on Ticket #${t.id} by ${currentUser.name}.`,
+        severity: newStatus === 'Resolved' ? 'Normal' : t.slaState,
+        ticketId: t.id,
+        read: false
+      });
+
+      updateSlaAndAging();
+      saveToStorage();
+      renderNotifications();
+      openTicketModal(t.id);
+      renderTickets();
+      renderDashboard();
+    }
+
+    function initReportDates() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById('repFromDate').value = `${yyyy}-${mm}-01`;
+      document.getElementById('repEndDate').value = `${yyyy}-${mm}-${dd}`;
+      validateReportDates();
+    }
+
+    function validateReportDates() {
+      const fromVal = document.getElementById('repFromDate').value;
+      const endVal = document.getElementById('repEndDate').value;
+      const err = document.getElementById('reportDateError');
+      const btn = document.getElementById('generateReportBtn');
+      err.classList.add('hidden');
+      btn.disabled = false;
+
+      if (!fromVal || !endVal) {
+        err.textContent = "Both From Date and End Date are mandatory.";
+        err.classList.remove('hidden');
+        btn.disabled = true;
+        return false;
+      }
+
+      const today = new Date();
+      const todayValue = formatDateOnly(today);
+
+      if (fromVal > endVal) {
+        err.textContent = "From Date cannot be later than End Date.";
+        err.classList.remove('hidden');
+        btn.disabled = true;
+        return false;
+      }
+      if (endVal > todayValue) {
+        err.textContent = "Future dates are not allowed for reporting.";
+        err.classList.remove('hidden');
+        btn.disabled = true;
+        return false;
+      }
+
+      document.getElementById('reportPeriodHeader').textContent =
+        `Report Period: ${fromVal.split('-').reverse().join('-')} to ${endVal.split('-').reverse().join('-')}`;
+      return true;
+    }
+
+    function generateReports(showBanner = false) {
+      if (!validateReportDates()) return;
+
+      document.getElementById('reportsAccessDenied').classList.toggle('hidden', canViewOrganizationReports());
+
+      const reportTypeSelect = document.getElementById('repType');
+      if (!canViewOrganizationReports() && reportTypeSelect.value === 'assignee') {
+        reportTypeSelect.value = 'cumulation';
+      }
+      const repType = reportTypeSelect.value;
+      const scoped = getAuthorizedTickets();
+      const fromDate = document.getElementById('repFromDate').value;
+      const endDate = document.getElementById('repEndDate').value;
+      const reportTickets = scoped.filter(t => {
+        const ticketDate = t.createdAt.slice(0, 10);
+        return ticketDate >= fromDate && ticketDate <= endDate;
+      });
+      const thead = document.getElementById('reportTableHead');
+      const tbody = document.getElementById('reportTableBody');
+
+      if (showBanner) {
+        const msg = document.getElementById('reportSuccessMsg');
+        msg.textContent = `Report generated successfully for ${reportTickets.length} ticket records.`;
+        msg.classList.remove('hidden');
+        setTimeout(() => msg.classList.add('hidden'), 3500);
+      }
+
+      if (repType === 'cumulation') {
+        thead.innerHTML = `
+          <tr>
+            <th class="p-3">Ticket ID</th>
+            <th class="p-3">Department & Category</th>
+            <th class="p-3">Floor</th>
+            <th class="p-3">Priority</th>
+            <th class="p-3">Status</th>
+            <th class="p-3">Target Date</th>
+            <th class="p-3">Assignee ETA</th>
+            <th class="p-3">SLA Status</th>
+          </tr>
+        `;
+        if (reportTickets.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500 font-medium">No tickets found for the selected period (${fromDate} to ${endDate}).</td></tr>`;
+        } else {
+          tbody.innerHTML = reportTickets.map(t => `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3 font-bold text-slate-800">${escapeHtml(t.id)}</td>
+              <td class="p-3">${escapeHtml(t.dept)} / ${escapeHtml(t.category)}</td>
+              <td class="p-3">${escapeHtml(t.floor)}</td>
+              <td class="p-3 font-semibold">P${t.priority}</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded text-[11px] font-semibold ${t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${escapeHtml(t.status)}</span></td>
+              <td class="p-3">${escapeHtml(t.expectedDate || 'N/A')}</td>
+              <td class="p-3">${escapeHtml(t.eta ? t.eta.replace('T', ' ') : 'N/A')}</td>
+              <td class="p-3 font-bold ${t.slaState === 'Breached' ? 'text-red-600' : t.slaState === 'Warning' ? 'text-amber-600' : 'text-emerald-600'}">${escapeHtml(t.slaState)}</td>
+            </tr>
+          `).join('');
+        }
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th class="p-3">Assignee Name</th>
+            <th class="p-3">Department</th>
+            <th class="p-3">Total Assigned</th>
+            <th class="p-3">Resolved</th>
+            <th class="p-3">Pending / Active</th>
+            <th class="p-3">SLA Breached</th>
+            <th class="p-3">SLA Compliance %</th>
+          </tr>
+        `;
+        const assignees = USERS.filter(u => u.role === 'Assignee' && (currentUser.role === 'Super Admin' || u.dept === currentUser.dept));
+        if (assignees.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-500 font-medium">No assignees found in department.</td></tr>';
+        } else {
+          tbody.innerHTML = assignees.map(a => {
+            const at = reportTickets.filter(t => t.assigneeId === a.id);
+            const aTot = at.length;
+            const aRes = at.filter(t => t.status === 'Resolved').length;
+            const aPend = at.filter(t => t.status !== 'Resolved').length;
+            const aBreach = at.filter(t => t.slaState === 'Breached').length;
+            const aSla = aTot ? Math.round(((aTot - aBreach) / aTot) * 100) : 100;
+            const badgeClass = aSla >= 90 ? 'bg-emerald-100 text-emerald-800' : aSla >= 75 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
+            return `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="p-3 font-bold text-slate-800">${a.name}</td>
+                <td class="p-3">${a.dept}</td>
+                <td class="p-3 font-semibold">${aTot}</td>
+                <td class="p-3 text-emerald-600 font-semibold">${aRes}</td>
+                <td class="p-3 text-amber-600 font-semibold">${aPend}</td>
+                <td class="p-3 text-red-600 font-semibold">${aBreach}</td>
+                <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">${aSla}%</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function exportReportCSV() {
+      if (!validateReportDates()) return;
+      const reportTypeSelect = document.getElementById('repType');
+      if (!canViewOrganizationReports() && reportTypeSelect.value === 'assignee') {
+        reportTypeSelect.value = 'cumulation';
+      }
+      const fromDate = document.getElementById('repFromDate').value;
+      const endDate = document.getElementById('repEndDate').value;
+      const reportTickets = getAuthorizedTickets().filter(t => {
+        const ticketDate = t.createdAt.slice(0, 10);
+        return ticketDate >= fromDate && ticketDate <= endDate;
+      });
+      let rows;
+
+      if (reportTypeSelect.value === 'cumulation') {
+        rows = [["Ticket ID", "Department", "Category", "Floor", "Priority", "Status", "Assignee", "Target Completion", "Assignee ETA", "SLA Status"]];
+        reportTickets.forEach(t => rows.push([
+          t.id, t.dept, t.category, t.floor, `P${t.priority}`, t.status,
+          t.assigneeName || "Unassigned", t.expectedDate || "N/A", (t.eta ? t.eta.replace('T', ' ') : "N/A"), t.slaState
+        ]));
+      } else {
+        rows = [["Assignee Name", "Department", "Total Assigned", "Resolved", "Pending / Active", "SLA Breached", "SLA Compliance %"]];
+        const assignees = USERS.filter(u => u.role === 'Assignee' && (currentUser.role === 'Super Admin' || u.dept === currentUser.dept));
+        assignees.forEach(a => {
+          const assignedTickets = reportTickets.filter(t => t.assigneeId === a.id);
+          const total = assignedTickets.length;
+          const breached = assignedTickets.filter(t => t.slaState === 'Breached').length;
+          rows.push([
+            a.name,
+            a.dept,
+            total,
+            assignedTickets.filter(t => t.status === 'Resolved').length,
+            assignedTickets.filter(t => t.status !== 'Resolved').length,
+            breached,
+            `${total ? Math.round(((total - breached) / total) * 100) : 100}%`
+          ]);
+        });
+      }
+
+      const csvContent = rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `WFM_Report_${reportTypeSelect.value}_${fromDate}_to_${endDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function renderNotifications() {
+      const unread = notifications.filter(n => !n.read).length;
+      document.getElementById('notifBadge').textContent = unread;
+      const listEl = document.getElementById('notifList');
+
+      if (notifications.length === 0) {
+        listEl.innerHTML = '<div class="p-4 text-center text-slate-400">No notifications.</div>';
+        return;
+      }
+
+      listEl.innerHTML = notifications.map(n => `
+        <div class="p-3 hover:bg-slate-50 cursor-pointer transition" onclick="openTicketFromNotif('${n.ticketId}')">
+          <div class="flex items-center justify-between">
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${n.severity === 'Breached' ? 'bg-red-100 text-red-700' : n.severity === 'Warning' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}">${n.severity}</span>
+            <span class="text-[10px] text-slate-400">Tap to inspect</span>
+          </div>
+          <div class="mt-1.5 text-slate-700 text-xs leading-snug">${escapeHtml(n.text)}</div>
+        </div>
+      `).join('');
+    }
+
+    function toggleNotifications() {
+      document.getElementById('notifDropdown').classList.toggle('hidden');
+    }
+
+    function markAllNotificationsRead() {
+      notifications.forEach(n => n.read = true);
+      saveToStorage();
+      renderNotifications();
+    }
+
+    function openTicketFromNotif(ticketId) {
+      document.getElementById('notifDropdown').classList.add('hidden');
+      if (ticketId) {
+        openTicketModal(ticketId);
+      }
+    }
+
+    function manualRefresh() {
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('fa-spin');
+      setTimeout(() => {
+        icon.classList.remove('fa-spin');
+        const now = new Date();
+        document.getElementById('lastRefreshedText').textContent =
+          `Updated ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        updateSlaAndAging();
+        renderDashboard();
+        renderTickets();
+      }, 400);
+    }
+
+    // Modal backdrop click & Escape key listeners
+    document.getElementById('ticketModal').addEventListener('click', (e) => {
+      if (e.target.id === 'ticketModal') {
+        closeTicketModal();
+      }
+    });
+
+    const profileModalEl = document.getElementById('profileModal');
+    if (profileModalEl) {
+      profileModalEl.addEventListener('click', (e) => {
+        if (e.target.id === 'profileModal') {
+          closeProfileModal();
+        }
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeTicketModal();
+        closeProfileModal();
+        const notifDropdown = document.getElementById('notifDropdown');
+        if (notifDropdown) notifDropdown.classList.add('hidden');
+      }
+    });
+
+    // Close notification dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const notifDropdown = document.getElementById('notifDropdown');
+      const notifBtn = document.getElementById('notifBtn');
+      if (notifDropdown && !notifDropdown.classList.contains('hidden')) {
+        if (!notifDropdown.contains(e.target) && !notifBtn.contains(e.target)) {
+          notifDropdown.classList.add('hidden');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
